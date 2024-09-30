@@ -1,52 +1,56 @@
-from flask import Flask, render_template, request, redirect, url_for
-from flask_sqlalchemy import SQLAlchemy
+from flask import Flask, render_template, request, jsonify
 from datetime import datetime
+import sqlite3
 
 app = Flask(__name__)
 
-# Configurar la base de datos (por ejemplo, SQLite)
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///sensores.db'
-app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+# Crear la base de datos
+def init_db():
+    conn = sqlite3.connect('sensores.db')
+    cursor = conn.cursor()
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS registros (
+            id_log INTEGER PRIMARY KEY AUTOINCREMENT,
+            temperatura DOUBLE,
+            humedad DOUBLE,
+            fecha_hora DATETIME
+        )
+    ''')
+    conn.commit()
+    conn.close()
 
-db = SQLAlchemy(app)
-
-# Definir el modelo de la base de datos
-class SensorData(db.Model):
-    id_log = db.Column(db.BigInteger, primary_key=True)
-    temperatura = db.Column(db.Float, nullable=False)
-    humedad = db.Column(db.Float, nullable=False)
-    fecha_hora = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
-
-# Crear la base de datos si no existe
-with app.app_context():
-    db.create_all()
-
-# Ruta para la página principal y mostrar registros
+# Página principal
 @app.route('/')
 def index():
-    registros = SensorData.query.all()
-    return render_template('index.html', registros=registros)
+    return render_template('index.html')
 
-# Ruta para procesar el registro de los datos
+# Endpoint para registrar datos
 @app.route('/registrar', methods=['POST'])
 def registrar():
-    if request.method == 'POST':
-        temperatura = request.form['temperatura']
-        humedad = request.form['humedad']
-        fecha_hora = request.form['fecha_hora']
+    temperatura = request.form['temperatura']
+    humedad = request.form['humedad']
+    fecha_hora = request.form['fecha_hora']
 
-        # Crear una nueva instancia de SensorData
-        nuevo_registro = SensorData(
-            temperatura=float(temperatura),
-            humedad=float(humedad),
-            fecha_hora=datetime.strptime(fecha_hora, '%Y-%m-%dT%H:%M')
-        )
+    conn = sqlite3.connect('sensores.db')
+    cursor = conn.cursor()
+    cursor.execute('''
+        INSERT INTO registros (temperatura, humedad, fecha_hora)
+        VALUES (?, ?, ?)
+    ''', (float(temperatura), float(humedad), fecha_hora))
+    conn.commit()
+    
+    # Obtener el último ID insertado
+    last_id = cursor.lastrowid
+    conn.close()
 
-        # Agregar el registro a la base de datos
-        db.session.add(nuevo_registro)
-        db.session.commit()
-
-        return redirect(url_for('index'))
+    # Respuesta JSON con los datos ingresados
+    return jsonify({
+        'id_log': last_id,
+        'temperatura': temperatura,
+        'humedad': humedad,
+        'fecha_hora': fecha_hora
+    })
 
 if __name__ == '__main__':
+    init_db()  # Inicializa la base de datos
     app.run(debug=True)
