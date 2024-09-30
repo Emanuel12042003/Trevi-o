@@ -65,14 +65,14 @@
                     temperatura: {
                         required: true,
                         number: true,
-                        min: -50,  // Ejemplo de temperatura mínima
-                        max: 100   // Ejemplo de temperatura máxima
+                        min: -50,
+                        max: 100
                     },
                     humedad: {
                         required: true,
                         number: true,
-                        min: 0,    // Ejemplo de humedad mínima
-                        max: 100   // Ejemplo de humedad máxima
+                        min: 0,
+                        max: 100
                     },
                     fecha_hora: {
                         required: true,
@@ -98,24 +98,31 @@
                     }
                 },
                 submitHandler: function(form) {
-                    // Aquí podrías agregar la lógica para enviar los datos a la base de datos
-                    // Por ejemplo, se podría hacer una llamada AJAX para registrar los datos en el servidor
-
-                    // Para esta demostración, simplemente agregamos el registro a la tabla
                     let temperatura = $("#temperatura").val();
                     let humedad = $("#humedad").val();
                     let fecha_hora = $("#fecha_hora").val();
 
-                    let newRow = `<tr>
-                        <td>1</td> <!-- Este sería el ID generado por la base de datos -->
-                        <td>${temperatura} °C</td>
-                        <td>${humedad} %</td>
-                        <td>${fecha_hora}</td>
-                    </tr>`;
-                    $("#registros").append(newRow);
-
-                    // Limpiar el formulario después del registro
-                    form.reset();
+                    // Hacer un request AJAX al servidor para enviar los datos
+                    $.ajax({
+                        url: "/registrar",
+                        method: "POST",
+                        data: {
+                            temperatura: temperatura,
+                            humedad: humedad,
+                            fecha_hora: fecha_hora
+                        },
+                        success: function(response) {
+                            // Si la respuesta es exitosa, agregar una nueva fila a la tabla
+                            let newRow = `<tr>
+                                <td>${response.id_log}</td>
+                                <td>${response.temperatura} °C</td>
+                                <td>${response.humedad} %</td>
+                                <td>${response.fecha_hora}</td>
+                            </tr>`;
+                            $("#registros").append(newRow);
+                            form.reset();
+                        }
+                    });
                 }
             });
         });
