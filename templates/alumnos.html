@@ -3,17 +3,129 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Alumnos</title>
+    <title>Registro de Sensores</title>
+    <!-- Añadimos las librerías JQuery, JQuery Validation y Bootstrap -->
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/jquery.validation/1.19.3/jquery.validate.min.js"></script>
 </head>
 <body>
-    <form action="/alumnos/guardar" method="POST">
-        <label for="matricula">Matrícula:</label>
-        <input type="text" id="matricula" name="txtMatriculaFA" required>
-        <br><br>
-        <label for="nombre">Nombre y Apellido:</label>
-        <input type="text" id="nombre" name="txtNombreApellidoFA" required>
-        <br><br>
-        <button type="submit">Guardar</button>
-    </form>
+    <div class="container mt-5">
+        <h2 class="mb-4">Registro de Datos de Sensores</h2>
+
+        <!-- Formulario de registro -->
+        <form id="registroSensores" novalidate>
+            <!-- Campo oculto para el ID_Log -->
+            <input type="hidden" id="id_log" name="id_log" value="">
+
+            <!-- Campo para Temperatura -->
+            <div class="form-group">
+                <label for="temperatura">Temperatura (°C):</label>
+                <input type="text" class="form-control" id="temperatura" name="temperatura" required>
+            </div>
+
+            <!-- Campo para Humedad -->
+            <div class="form-group">
+                <label for="humedad">Humedad (%):</label>
+                <input type="text" class="form-control" id="humedad" name="humedad" required>
+            </div>
+
+            <!-- Campo para Fecha y Hora -->
+            <div class="form-group">
+                <label for="fecha_hora">Fecha y Hora:</label>
+                <input type="datetime-local" class="form-control" id="fecha_hora" name="fecha_hora" required>
+            </div>
+
+            <!-- Botón de registro -->
+            <button type="submit" class="btn btn-primary">Registrar</button>
+        </form>
+
+        <!-- Tabla para mostrar registros ya existentes -->
+        <h3 class="mt-5">Registros Existentes</h3>
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Temperatura</th>
+                    <th>Humedad</th>
+                    <th>Fecha y Hora</th>
+                </tr>
+            </thead>
+            <tbody id="registros">
+                <!-- Los registros existentes se mostrarán aquí -->
+            </tbody>
+        </table>
+    </div>
+
+    <script>
+        $(document).ready(function() {
+            // Validación con JQuery Validation
+            $("#registroSensores").validate({
+                rules: {
+                    temperatura: {
+                        required: true,
+                        number: true,
+                        min: -50,
+                        max: 100
+                    },
+                    humedad: {
+                        required: true,
+                        number: true,
+                        min: 0,
+                        max: 100
+                    },
+                    fecha_hora: {
+                        required: true,
+                        date: true
+                    }
+                },
+                messages: {
+                    temperatura: {
+                        required: "Por favor ingrese la temperatura.",
+                        number: "Ingrese un valor numérico válido.",
+                        min: "La temperatura mínima permitida es -50°C.",
+                        max: "La temperatura máxima permitida es 100°C."
+                    },
+                    humedad: {
+                        required: "Por favor ingrese la humedad.",
+                        number: "Ingrese un valor numérico válido.",
+                        min: "La humedad mínima permitida es 0%.",
+                        max: "La humedad máxima permitida es 100%."
+                    },
+                    fecha_hora: {
+                        required: "Por favor ingrese la fecha y hora.",
+                        date: "Ingrese una fecha y hora válida."
+                    }
+                },
+                submitHandler: function(form) {
+                    let temperatura = $("#temperatura").val();
+                    let humedad = $("#humedad").val();
+                    let fecha_hora = $("#fecha_hora").val();
+
+                    // Hacer un request AJAX al servidor para enviar los datos
+                    $.ajax({
+                        url: "/registrar",
+                        method: "POST",
+                        data: {
+                            temperatura: temperatura,
+                            humedad: humedad,
+                            fecha_hora: fecha_hora
+                        },
+                        success: function(response) {
+                            // Si la respuesta es exitosa, agregar una nueva fila a la tabla
+                            let newRow = `<tr>
+                                <td>${response.id_log}</td>
+                                <td>${response.temperatura} °C</td>
+                                <td>${response.humedad} %</td>
+                                <td>${response.fecha_hora}</td>
+                            </tr>`;
+                            $("#registros").append(newRow);
+                            form.reset();
+                        }
+                    });
+                }
+            });
+        });
+    </script>
 </body>
 </html>
