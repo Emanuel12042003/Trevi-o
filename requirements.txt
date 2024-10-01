@@ -3,6 +3,3 @@ Gunicorn
 pusher
 mysql-connector-python
 pytz
-Flask==2.0.3
-Flask==2.0.3
-gunicorn==20.1.0
