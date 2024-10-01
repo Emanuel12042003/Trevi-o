@@ -1,83 +1,55 @@
-from flask import Flask
-
-from flask import render_template
-from flask import request
-
-import pusher
-
+from flask import Flask, render_template, request, redirect, url_for, flash
 import mysql.connector
-import datetime
-import pytz
-
-con = mysql.connector.connect(
-    host="185.232.14.52",
-    database="u760464709_tst_sep",
-    user="u760464709_tst_sep_usr",
-    password="dJ0CIAFF="
-)
+from mysql.connector import Error
 
 app = Flask(__name__)
+app.secret_key = 'tu_clave_secreta'
 
-@app.route("/")
+# Conexión a la base de datos MySQL
+def get_db_connection():
+    connection = None
+    try:
+        connection = mysql.connector.connect(
+            host='localhost',
+            database='nombre_de_tu_base_de_datos',
+            user='tu_usuario',
+            password='tu_contraseña'
+        )
+    except Error as e:
+        print(f"Error al conectar a la base de datos: {e}")
+    return connection
+
+# Ruta para el formulario de registro
+@app.route('/')
 def index():
-    con.close()
+    return render_template('app.html')
 
-    return render_template("app.html")
-
-# Ejemplo de ruta GET usando templates para mostrar una vista
-@app.route("/alumnos")
-def alumnos():
-    con.close()
-
-    return render_template("alumnos.html")
-
-# Ejemplo de ruta POST para ver cómo se envia la informacion
-@app.route("/alumnos/guardar", methods=["POST"])
-def alumnosGuardar():
-    con.close()
-    matricula      = request.form["txtMatriculaFA"]
-    nombreapellido = request.form["txtNombreApellidoFA"]
-
-    return f"Matrícula {matricula} Nombre y Apellido {nombreapellido}"
-
-# Código usado en las prácticas
-@app.route("/buscar")
-def buscar():
-    if not con.is_connected():
-        con.reconnect()
-
-    cursor = con.cursor()
-    cursor.execute("SELECT * FROM sensor_log ORDER BY Id_Log DESC")
-    registros = cursor.fetchall()
-
-    con.close()
-
-    return registros
-
-@app.route("/registrar", methods=["GET"])
+# Ruta para procesar el formulario
+@app.route('/registrar', methods=['POST'])
 def registrar():
-    args = request.args
+    nombre_usuario = request.form['Nombre_Usuario']
+    contrasena = request.form['contrasena']
+    confirmar_contrasena = request.form['confirmar_contrasena']
 
-    if not con.is_connected():
-        con.reconnect()
+    if contrasena != confirmar_contrasena:
+        flash('Las contraseñas no coinciden.')
+        return redirect(url_for('index'))
 
-    cursor = con.cursor()
+    # Guardar en la base de datos
+    connection = get_db_connection()
+    cursor = connection.cursor()
 
-    sql = "INSERT INTO sensor_log (Temperatura, Humedad, Fecha_Hora) VALUES (%s, %s, %s)"
-    val = (args["temperatura"], args["humedad"], datetime.datetime.now(pytz.timezone("America/Matamoros")))
-    cursor.execute(sql, val)
-    
-    con.commit()
-    con.close()
+    try:
+        cursor.execute("INSERT INTO Usuarios (Nombre_Usuario, contrasena) VALUES (%s, %s)", (nombre_usuario, contrasena))
+        connection.commit()
+        flash('Usuario registrado exitosamente.')
+    except Error as e:
+        flash(f"Error al registrar usuario: {e}")
+    finally:
+        cursor.close()
+        connection.close()
 
-    pusher_client = pusher.Pusher(
-        app_id="1714541",
-        key="2df86616075904231311",
-        secret="2f91d936fd43d8e85a1a",
-        cluster="us2",
-        ssl=True
-    )
+    return redirect(url_for('index'))
 
-    pusher_client.trigger("canalRegistrosTemperaturaHumedad", "registroTemperaturaHumedad", args)
-
-    return args
+if __name__ == '__main__':
+    app.run(debug=True)
