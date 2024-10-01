@@ -1,56 +1,83 @@
-from flask import Flask, render_template, request, jsonify
-from datetime import datetime
-import sqlite3
+from flask import Flask
+
+from flask import render_template
+from flask import request
+
+import pusher
+
+import mysql.connector
+import datetime
+import pytz
+
+con = mysql.connector.connect(
+    host="185.232.14.52",
+    database="u760464709_tst_sep",
+    user="u760464709_tst_sep_usr",
+    password="dJ0CIAFF="
+)
 
 app = Flask(__name__)
 
-# Crear la base de datos
-def init_db():
-    conn = sqlite3.connect('sensores.db')
-    cursor = conn.cursor()
-    cursor.execute('''
-        CREATE TABLE IF NOT EXISTS registros (
-            id_log INTEGER PRIMARY KEY AUTOINCREMENT,
-            temperatura DOUBLE,
-            humedad DOUBLE,
-            fecha_hora DATETIME
-        )
-    ''')
-    conn.commit()
-    conn.close()
-
-# Página principal
-@app.route('/')
+@app.route("/")
 def index():
-    return render_template('index.html')
+    con.close()
 
-# Endpoint para registrar datos
-@app.route('/registrar', methods=['POST'])
+    return render_template("app.html")
+
+# Ejemplo de ruta GET usando templates para mostrar una vista
+@app.route("/alumnos")
+def alumnos():
+    con.close()
+
+    return render_template("alumnos.html")
+
+# Ejemplo de ruta POST para ver cómo se envia la informacion
+@app.route("/alumnos/guardar", methods=["POST"])
+def alumnosGuardar():
+    con.close()
+    matricula      = request.form["txtMatriculaFA"]
+    nombreapellido = request.form["txtNombreApellidoFA"]
+
+    return f"Matrícula {matricula} Nombre y Apellido {nombreapellido}"
+
+# Código usado en las prácticas
+@app.route("/buscar")
+def buscar():
+    if not con.is_connected():
+        con.reconnect()
+
+    cursor = con.cursor()
+    cursor.execute("SELECT * FROM sensor_log ORDER BY Id_Log DESC")
+    registros = cursor.fetchall()
+
+    con.close()
+
+    return registros
+
+@app.route("/registrar", methods=["GET"])
 def registrar():
-    temperatura = request.form['temperatura']
-    humedad = request.form['humedad']
-    fecha_hora = request.form['fecha_hora']
+    args = request.args
 
-    conn = sqlite3.connect('sensores.db')
-    cursor = conn.cursor()
-    cursor.execute('''
-        INSERT INTO registros (temperatura, humedad, fecha_hora)
-        VALUES (?, ?, ?)
-    ''', (float(temperatura), float(humedad), fecha_hora))
-    conn.commit()
+    if not con.is_connected():
+        con.reconnect()
+
+    cursor = con.cursor()
+
+    sql = "INSERT INTO sensor_log (Temperatura, Humedad, Fecha_Hora) VALUES (%s, %s, %s)"
+    val = (args["temperatura"], args["humedad"], datetime.datetime.now(pytz.timezone("America/Matamoros")))
+    cursor.execute(sql, val)
     
-    # Obtener el último ID insertado
-    last_id = cursor.lastrowid
-    conn.close()
+    con.commit()
+    con.close()
 
-    # Respuesta JSON con los datos ingresados
-    return jsonify({
-        'id_log': last_id,
-        'temperatura': temperatura,
-        'humedad': humedad,
-        'fecha_hora': fecha_hora
-    })
+    pusher_client = pusher.Pusher(
+        app_id="1714541",
+        key="2df86616075904231311",
+        secret="2f91d936fd43d8e85a1a",
+        cluster="us2",
+        ssl=True
+    )
 
-if __name__ == '__main__':
-    init_db()  # Inicializa la base de datos
-    app.run(debug=True)
+    pusher_client.trigger("canalRegistrosTemperaturaHumedad", "registroTemperaturaHumedad", args)
+
+    return args
