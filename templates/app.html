@@ -5,14 +5,14 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Registro de Usuario</title>
 
-    
+    <!-- Bootstrap para el estilo -->
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css">
 </head>
 <body>
     <div class="container mt-5">
         <h2>Registro de Usuario</h2>
 
-        <!-- Metodo GET -->
+        <!-- Formulario de inserción con método GET -->
         <form id="registro-form" method="GET" action="/registrar">
             <div class="form-group">
                 <label for="Nombre_Usuario">Nombre de Usuario</label>
@@ -25,7 +25,7 @@
             <button type="submit" class="btn btn-primary">Registrar</button>
         </form>
 
-        <!-- Tabla -->
+        <!-- Tabla donde se mostrarán los registros -->
         <h3 class="mt-5">Usuarios Registrados</h3>
         <table class="table table-bordered" id="usuarios-tabla">
             <thead>
@@ -44,5 +44,26 @@
             </tbody>
         </table>
     </div>
+
+    <!-- JQuery para manejar la actualización dinámica de la tabla -->
+    <script src="https://code.jquery.com/jquery-3.3.1.min.js"></script>
+    <script>
+        $(document).ready(function() {
+            // Función para cargar los usuarios registrados cada cierto tiempo
+            function actualizarUsuarios() {
+                $.get('/obtener_usuarios', function(data) {
+                    $('#usuarios-cuerpo').empty();  // Limpiar la tabla
+
+                    // Agregar los nuevos usuarios a la tabla
+                    data.usuarios.forEach(function(usuario) {
+                        $('#usuarios-cuerpo').append('<tr><td>' + usuario.id + '</td><td>' + usuario.nombre + '</td></tr>');
+                    });
+                });
+            }
+
+            // Llamar a la función cada 3 segundos para mantener la tabla actualizada
+            setInterval(actualizarUsuarios, 3000);
+        });
+    </script>
 </body>
 </html>
