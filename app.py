@@ -1,55 +1,30 @@
-from flask import Flask, render_template, request, redirect, url_for, flash
-import mysql.connector
-from mysql.connector import Error
+from flask import Flask, request, render_template
 
 app = Flask(__name__)
-app.secret_key = 'tu_clave_secreta'
 
-# Conexión a la base de datos MySQL
-def get_db_connection():
-    connection = None
-    try:
-        connection = mysql.connector.connect(
-            host='localhost',
-            database='nombre_de_tu_base_de_datos',
-            user='tu_usuario',
-            password='tu_contraseña'
-        )
-    except Error as e:
-        print(f"Error al conectar a la base de datos: {e}")
-    return connection
+# Lista para almacenar los usuarios temporalmente en memoria
+usuarios = []
 
-# Ruta para el formulario de registro
+# Ruta principal para renderizar el formulario y la tabla
 @app.route('/')
 def index():
-    return render_template('app.html')
+    return render_template('app.html', usuarios=usuarios)
 
-# Ruta para procesar el formulario
-@app.route('/registrar', methods=['POST'])
+# Ruta para insertar un nuevo registro vía GET
+@app.route('/registrar', methods=['GET'])
 def registrar():
-    nombre_usuario = request.form['Nombre_Usuario']
-    contrasena = request.form['contrasena']
-    confirmar_contrasena = request.form['confirmar_contrasena']
+    nombre_usuario = request.args.get('Nombre_Usuario')
+    contrasena = request.args.get('contrasena')
 
-    if contrasena != confirmar_contrasena:
-        flash('Las contraseñas no coinciden.')
-        return redirect(url_for('index'))
+    # Crear un nuevo ID basado en la longitud de la lista de usuarios
+    usuario_id = len(usuarios) + 1
 
-    # Guardar en la base de datos
-    connection = get_db_connection()
-    cursor = connection.cursor()
+    # Añadir el nuevo usuario a la lista
+    nuevo_usuario = {'id': usuario_id, 'nombre': nombre_usuario, 'contrasena': contrasena}
+    usuarios.append(nuevo_usuario)
 
-    try:
-        cursor.execute("INSERT INTO Usuarios (Nombre_Usuario, contrasena) VALUES (%s, %s)", (nombre_usuario, contrasena))
-        connection.commit()
-        flash('Usuario registrado exitosamente.')
-    except Error as e:
-        flash(f"Error al registrar usuario: {e}")
-    finally:
-        cursor.close()
-        connection.close()
-
-    return redirect(url_for('index'))
+    # Redirigir al usuario a la página principal para ver la tabla actualizada
+    return render_template('app.html', usuarios=usuarios)
 
 if __name__ == '__main__':
     app.run(debug=True)
