@@ -1,39 +1,93 @@
-from flask import Flask, request, render_template, jsonify
+from flask import Flask, render_template, request, jsonify, make_response
+import pusher
+import mysql.connector
+import datetime
+import pytz
 
 app = Flask(__name__)
 
-# Lista para almacenar hasta 5 usuarios
-usuarios = []
+# Credenciales de Pusher
+pusher_client = pusher.Pusher(
+    app_id="1874485",
+    key="970a7d4d6af4b86adcc6",
+    secret="2e26ccd3273ad909a49d",
+    cluster="us2",
+    ssl=True
+)
 
-# Ruta principal para renderizar el formulario y la tabla
-@app.route('/')
+# Configuración de la base de datos
+con = mysql.connector.connect(
+    host="185.232.14.52",
+    database="u760464709_tst_sep",
+    user="u760464709_tst_sep_usr",
+    password="dJ0CIAFF="
+)
+
+@app.route("/")
 def index():
-    return render_template('app.html', usuarios=usuarios)
+    return render_template("app.html")
 
-# Ruta para insertar un nuevo registro vía GET
-@app.route('/registrar', methods=['GET'])
-def registrar():
-    nombre_usuario = request.args.get('Nombre_Usuario')
-    contrasena = request.args.get('contrasena')
+# Leer usuarios
+@app.route("/usuarios")
+def usuarios():
+    if not con.is_connected():
+        con.reconnect()
 
-    # Crear un nuevo ID basado en la longitud de la lista de usuarios
-    usuario_id = len(usuarios) + 1
+    cursor = con.cursor(dictionary=True)
+    cursor.execute("SELECT Id_Usuario, Nombre_Usuario FROM tst0_usuarios")
+    usuarios = cursor.fetchall()
+    con.close()
 
-    # Añadir el nuevo usuario a la lista
-    nuevo_usuario = {'id': usuario_id, 'nombre': nombre_usuario, 'contrasena': contrasena}
-    usuarios.append(nuevo_usuario)
+    return make_response(jsonify(usuarios))
 
-    # Mantener solo los últimos 5 registros
-    if len(usuarios) > 5:
-        usuarios.pop(0)
+# Crear o actualizar usuario
+@app.route("/usuarios/guardar", methods=["POST"])
+def guardar_usuario():
+    if not con.is_connected():
+        con.reconnect()
 
-    # Redirigir al usuario a la página principal para ver la tabla actualizada
-    return render_template('app.html', usuarios=usuarios)
+    id_usuario = request.form.get("id_usuario")
+    nombre_usuario = request.form["nombre_usuario"]
+    contrasena = request.form["contrasena"]
 
-# Ruta para obtener los usuarios en formato JSON (para actualización periódica con AJAX)
-@app.route('/obtener_usuarios', methods=['GET'])
-def obtener_usuarios():
-    return jsonify({'usuarios': usuarios})
+    cursor = con.cursor()
 
-if __name__ == '__main__':
+    if id_usuario:
+        # Actualizar usuario existente
+        sql = "UPDATE tst0_usuarios SET Nombre_Usuario=%s, Contrasena=%s WHERE Id_Usuario=%s"
+        val = (nombre_usuario, contrasena, id_usuario)
+    else:
+        # Crear nuevo usuario
+        sql = "INSERT INTO tst0_usuarios (Nombre_Usuario, Contrasena) VALUES (%s, %s)"
+        val = (nombre_usuario, contrasena)
+
+    cursor.execute(sql, val)
+    con.commit()
+    con.close()
+
+    pusher_client.trigger("canalUsuarios", "actualizacionUsuario", {"message": "Usuario guardado correctamente"})
+
+    return make_response(jsonify({}))
+
+# Eliminar usuario
+@app.route("/usuarios/eliminar", methods=["POST"])
+def eliminar_usuario():
+    if not con.is_connected():
+        con.reconnect()
+
+    id_usuario = request.form["id_usuario"]
+
+    cursor = con.cursor()
+    sql = "DELETE FROM tst0_usuarios WHERE Id_Usuario=%s"
+    val = (id_usuario,)
+
+    cursor.execute(sql, val)
+    con.commit()
+    con.close()
+
+    pusher_client.trigger("canalUsuarios", "actualizacionUsuario", {"message": "Usuario eliminado correctamente"})
+
+    return make_response(jsonify({}))
+    
+if __name__ == "__main__":
     app.run(debug=True)
