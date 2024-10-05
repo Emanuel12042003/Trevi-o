@@ -19,12 +19,12 @@
 
             <div class="mb-3">
                 <label for="nombre_usuario" class="form-label">Nombre de Usuario</label>
-                <input type="text" id="nombre_usuario" name="nombre_usuario" class="form-control">
+                <input type="text" id="nombre_usuario" name="nombre_usuario" class="form-control" required>
             </div>
 
             <div class="mb-3">
                 <label for="contrasena" class="form-label">Contraseña</label>
-                <input type="password" id="contrasena" name="contrasena" class="form-control">
+                <input type="password" id="contrasena" name="contrasena" class="form-control" required>
             </div>
 
             <button id="guardar" class="btn btn-primary">Guardar</button>
@@ -48,7 +48,7 @@
         // Cargar usuarios al cargar la página
         function cargarUsuarios() {
             $.get("/usuarios", function (usuarios) {
-                $("#tbodyUsuarios").html("");
+                $("#tbodyUsuarios").html(""); // Limpiar la tabla
                 usuarios.forEach(function (usuario) {
                     $("#tbodyUsuarios").append(`
                         <tr>
@@ -67,7 +67,7 @@
         // Editar usuario
         $(document).on("click", ".btn-editar", function () {
             const id_usuario = $(this).data("id");
-            $.get(`/usuarios/editar/${id_usuario}`, function (usuario) {
+            $.get(`/usuarios/editar?id=${id_usuario}`, function (usuario) {
                 $("#id_usuario").val(usuario.Id_Usuario);
                 $("#nombre_usuario").val(usuario.Nombre_Usuario);
                 $("#contrasena").val(usuario.Contrasena);
@@ -79,7 +79,7 @@
             if (!confirm("¿Seguro que deseas eliminar este usuario?")) return;
 
             const id_usuario = $(this).data("id");
-            $.post(`/usuarios/eliminar/${id_usuario}`, function () {
+            $.post("/usuarios/eliminar", { id: id_usuario }, function () {
                 cargarUsuarios();
             });
         });
@@ -88,9 +88,7 @@
         $("#frmUsuario").submit(function (event) {
             event.preventDefault();
 
-            const id_usuario = $("#id_usuario").val();
-            const url = id_usuario ? `/usuarios/actualizar/${id_usuario}` : "/usuarios/crear";
-
+            const url = "/usuarios/guardar";
             $.post(url, $(this).serialize(), function () {
                 $("#frmUsuario").get(0).reset();
                 cargarUsuarios();
