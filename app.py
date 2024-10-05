@@ -1,8 +1,6 @@
-from flask import Flask, render_template, request, jsonify, make_response
+from flask import Flask, render_template, request, jsonify
 import mysql.connector
 import pusher
-import datetime
-import pytz
 
 # Conexión a la base de datos
 con = mysql.connector.connect(
