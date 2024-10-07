@@ -1,8 +1,10 @@
 from flask import Flask, render_template, request, jsonify, make_response
 import mysql.connector
 import pusher
-import datetime
-import pytz
+import logging
+
+# Configura el logger de Flask
+logging.basicConfig(level=logging.INFO)
 
 # Conexión a la base de datos
 con = mysql.connector.connect(
@@ -17,6 +19,7 @@ app = Flask(__name__)
 # Página principal que carga el CRUD de usuarios
 @app.route("/")
 def index():
+    logging.info("Cargando página principal")
     con.close()
     return render_template("app.html")
 
@@ -36,11 +39,13 @@ def usuariosGuardar():
         UPDATE tst0_usuarios SET Nombre_Usuario = %s, Contrasena = %s WHERE Id_Usuario = %s
         """
         val = (nombre_usuario, contrasena, id_usuario)
+        logging.info(f"Actualizando usuario con ID: {id_usuario}")
     else:  # Crear nuevo usuario
         sql = """
         INSERT INTO tst0_usuarios (Nombre_Usuario, Contrasena) VALUES (%s, %s)
         """
         val = (nombre_usuario, contrasena)
+        logging.info(f"Creando nuevo usuario: {nombre_usuario}")
 
     cursor.execute(sql, val)
     con.commit()
@@ -63,6 +68,7 @@ def obtener_usuarios():
     cursor.close()
     con.close()
 
+    logging.info("Obteniendo lista de usuarios")
     return make_response(jsonify(usuarios))
 
 # Obtener un usuario por su ID sin usar query string
@@ -79,11 +85,14 @@ def editar_usuario(id_usuario):
     cursor.close()
     con.close()
 
+    logging.info(f"Obteniendo datos del usuario con ID: {id_usuario}")
     return make_response(jsonify(usuario))
 
 # Eliminar un usuario usando el ID en la URL
 @app.route("/usuarios/eliminar/<int:id_usuario>", methods=["POST"])
 def eliminar_usuario(id_usuario):
+    logging.info(f"Intentando eliminar el usuario con ID: {id_usuario}")
+    
     if not con.is_connected():
         con.reconnect()
 
@@ -97,6 +106,7 @@ def eliminar_usuario(id_usuario):
 
     notificar_actualizacion_usuarios()
 
+    logging.info(f"Usuario con ID {id_usuario} eliminado exitosamente.")
     return make_response(jsonify({"message": "Usuario eliminado exitosamente"}))
 
 # Notificar a través de Pusher sobre actualizaciones en la tabla de usuarios
@@ -109,6 +119,7 @@ def notificar_actualizacion_usuarios():
         ssl=True
     )
     pusher_client.trigger("canalUsuarios", "actualizacion", {})
+    logging.info("Notificación enviada a través de Pusher")
 
 if __name__ == "__main__":
     app.run(debug=True)
