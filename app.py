@@ -65,13 +65,12 @@ def obtener_usuarios():
 
     return make_response(jsonify(usuarios))
 
-# Obtener un usuario por su ID
-@app.route("/usuarios/editar", methods=["GET"])
-def editar_usuario():
+# Obtener un usuario por su ID sin usar query string
+@app.route("/usuarios/editar/<int:id_usuario>", methods=["GET"])
+def editar_usuario(id_usuario):
     if not con.is_connected():
         con.reconnect()
 
-    id_usuario = request.args.get("id")
     cursor = con.cursor(dictionary=True)
     sql = "SELECT * FROM tst0_usuarios WHERE Id_Usuario = %s"
     val = (id_usuario,)
@@ -82,13 +81,12 @@ def editar_usuario():
 
     return make_response(jsonify(usuario))
 
-# Eliminar un usuario
-@app.route("/usuarios/eliminar", methods=["POST"])
-def eliminar_usuario():
+# Eliminar un usuario usando el ID en la URL
+@app.route("/usuarios/eliminar/<int:id_usuario>", methods=["POST"])
+def eliminar_usuario(id_usuario):
     if not con.is_connected():
         con.reconnect()
 
-    id_usuario = request.form["id"]
     cursor = con.cursor()
     sql = "DELETE FROM tst0_usuarios WHERE Id_Usuario = %s"
     val = (id_usuario,)
