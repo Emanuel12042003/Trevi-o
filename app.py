@@ -8,14 +8,14 @@ logging.basicConfig(level=logging.INFO)
 
 # Configurar la conexión a la base de datos
 con = mysql.connector.connect(
-    host="185.232.14.52",
-    database="GestionAsistenciaBonificacion",
-    user="tu_usuario",
-    password="tu_contraseña"
+    host="191.96.56.188",
+    database="u230126021_sistema",
+    user="u230126021_Emanuel12",
+    password="Hernandez1204"
 )
 
 app = Flask(__name__)
-app.secret_key = "clave_secreta_para_sesiones"
+app.secret_key = "970a7d4d6af4b86adcc6"
 
 # -------------------
 # Ruta de inicio de sesión
