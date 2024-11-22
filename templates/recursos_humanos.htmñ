@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestión Recursos Humanos</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+</head>
+<body>
+    <div class="container">
+        <h1 class="mt-5">Gestión de Usuarios</h1>
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Nombre</th>
+                    <th>Rol</th>
+                    <th>Acciones</th>
+                </tr>
+            </thead>
+            <tbody id="usuarios-lista"></tbody>
+        </table>
+    </div>
+
+    <script>
+        function cargarUsuarios() {
+            $.getJSON("/usuarios", function(usuarios) {
+                let html = "";
+                usuarios.forEach(usuario => {
+                    html += `<tr>
+                        <td>${usuario.id_usuario}</td>
+                        <td>${usuario.nombre_usuario}</td>
+                        <td>${usuario.rol}</td>
+                        <td>
+                            <button class="btn btn-primary">Editar</button>
+                            <button class="btn btn-danger">Eliminar</button>
+                        </td>
+                    </tr>`;
+                });
+                $("#usuarios-lista").html(html);
+            });
+        }
+        $(document).ready(cargarUsuarios);
+    </script>
+</body>
+</html>
